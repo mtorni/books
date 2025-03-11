@@ -1,0 +1,15 @@
+image:
+  repository: joke_service
+
+service:
+  name: joke-service
+  port: 8080
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: localhost
+      paths:
+        - path: /

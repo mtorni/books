@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: joke-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: joke-service
+  template:
+    metadata:
+      labels:
+        app: joke-service
+    spec:
+      containers:
+        - name: joke-service
+          image: "{{ .Values.image.repository }}"
+          imagePullPolicy: IfNotPresent
+          resources:
+             limits:
+                cpu: 900m
+                memory: 900Mi
+             requests:
+                cpu: 300m
+                memory: 300Mi                  
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+spec:
+  selector:
+    app: joke-service
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
