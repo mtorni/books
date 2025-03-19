@@ -43,12 +43,21 @@ class SecurityConfig {
     public Jwt2AuthoritiesConverter authoritiesConverter() {
     	System.out.println("authoritiesConverter...");
         return jwt -> {
-        	System.out.println("authoritiesConverter...11111");
+
+        	System.out.println("Jwt: " + jwt.getTokenValue());
             // realm roles
             final var realmAccess = (Map<String, Object>) jwt.getClaims().getOrDefault("realm_access", Map.of());
             final var realmRoles = (Collection<String>) realmAccess.getOrDefault("roles", List.of());
+            
+            final var resourceAccess = (Map<String, Object>) jwt.getClaims().getOrDefault("resource_access", Map.of());
+            final var apiResource = (Map<String, Object>) resourceAccess.getOrDefault("my-client", Map.of());
+            final var apiRoles = (Collection<String>) apiResource.getOrDefault("roles", List.of());
      
-            return realmRoles.stream()
+            System.out.println("realmAccess..."+realmAccess);
+            System.out.println("realmRoles..."+realmRoles);
+            System.out.println("apiRoles..."+apiRoles);
+            
+            return Stream.concat(realmRoles.stream(), apiRoles.stream())
                     .map(SimpleGrantedAuthority::new).toList();
         };
     }
@@ -89,6 +98,10 @@ class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/info", "/health", "/metrics", "/prometheus", "/v3/api-docs.yaml").permitAll()
                 
                 .requestMatchers(HttpMethod.GET, "/customers").hasAnyAuthority("user")
+                .requestMatchers(HttpMethod.GET, "/users").hasAnyAuthority("user")
+                
+             //   .requestMatchers(HttpMethod.GET, "/customers").permitAll()
+             //   .requestMatchers(HttpMethod.GET, "/users").permitAll()
 
                 .anyRequest().denyAll()
         );
