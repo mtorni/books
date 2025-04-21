@@ -1,16 +1,28 @@
+mvn install
 docker build -t joke_service .
 docker run --name joke_service -d -p 8080:8080 joke_service
 
 kubectl create namespace devsupport
 
 helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
-kubectl getcls service --namespace ingress-nginx ingress-nginx-controller --output wide --watch
 
-helm install joke-service . 
- or helm install --namespace devsupport joke-service .
-helm delete joke-service
- or helm delete --namespace devsupport joke-service
+download https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+add --kubelet-insecure-tls to the args section of the deployment
+already do in etc folder
+kubectl apply -f metrics.yaml
 
+
+
+
+helm install --namespace devsupport joke-service .
+
+
+helm delete --namespace devsupport joke-service
+helm delete  joke-service
+
+
+if this doesn't work delete
+hpa, deployment, service, and hpa
 
 
 http://localhost/joke
