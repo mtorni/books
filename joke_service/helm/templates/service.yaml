@@ -1,8 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: devsupport
-  name: joke-service
+  name: {{ .Values.service.name }}
   labels:
     app: joke-service
 spec:
@@ -16,3 +15,4 @@ spec:
       name: http
   selector:
     app: joke-service
+

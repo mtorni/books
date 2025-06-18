@@ -8,13 +8,13 @@ helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.git
 
 download https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 add --kubelet-insecure-tls to the args section of the deployment
-already do in etc folder
+already did in etc folder
 kubectl apply -f metrics.yaml
 
 
 
 
-helm install --namespace devsupport joke-service .
+
 
 
 helm delete --namespace devsupport joke-service
@@ -26,3 +26,39 @@ hpa, deployment, service, and hpa
 
 
 http://localhost/joke
+
+docker build --no-cache -t joke_service:latest .
+
+
+
+1) mvn install && docker build -t joke_service:latest .
+2) helm upgrade --install joke-service ./helm --namespace devsupport
+
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+spec:
+  selector:
+    app: joke-service
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

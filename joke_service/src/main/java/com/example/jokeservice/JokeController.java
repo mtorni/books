@@ -14,13 +14,20 @@ public class JokeController {
     }
 
     @GetMapping("/joke")
-    public ResponseEntity<JokeResponse> getRandomQuote() {
+    public ResponseEntity<JokeResponse> randomQuote() {
         JokeResponse quote = new JokeResponse();
         quote.setContent(jokeService.randomJoke());
         
         quote.setCalculationResult(performCalculation());
         
         return ResponseEntity.ok(quote);
+    }
+    
+    @GetMapping("/version")
+    public ResponseEntity<String> version() {
+        String version = "1.0.6";
+        
+        return ResponseEntity.ok(version);
     }
     
     private double performCalculation() {

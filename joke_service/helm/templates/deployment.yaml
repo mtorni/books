@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: joke-service
-          image: "{{ .Values.image.repository }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: IfNotPresent
           resources:
              limits:
@@ -40,15 +40,4 @@ spec:
               port: {{ .Values.service.port }}
             initialDelaySeconds: 60
             periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Values.service.name }}
-spec:
-  selector:
-    app: joke-service
-  ports:
-    - name: http
-      port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.port }}
+
