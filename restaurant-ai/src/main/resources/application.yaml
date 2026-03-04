@@ -1,3 +1,20 @@
 spring:
   application:
     name: restaurant-ai
+  ai:
+    openai:
+      api-key: 
+      chat:
+        options:
+          model: gpt-4o-mini
+      embedding:
+        options:
+          model: text-embedding-3-small
+
+    vectorstore:
+      chroma:
+        initialize-schema: true
+        collection-name: restaurant
+        client:
+          host: http://localhost
+          port: 8000
