@@ -1,6 +1,7 @@
 package com.lunawave.restaurantai.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -23,31 +24,49 @@ public class AskController {
     }
 
     @GetMapping("/api/restaurant/ask")
-    public String ask(@RequestParam String q) {
-
-        // 1️) Retrieve relevant restaurant docs from Chroma
+    public String ask(
+        @RequestParam String q,
+        @RequestParam(required = false) String restaurantId
+    ) {
+        // 1️⃣ Retrieve candidate docs from Chroma
         List<Document> docs = vectorStore.similaritySearch(
             SearchRequest.builder()
                 .query(q)
-                .topK(6)
+                .topK(10) // grab a few extra so filtering doesn't empty us out
                 .build()
         );
 
-        // 2️) Debug: print what Chroma returned
-        if (docs != null && !docs.isEmpty()) {
-            docs.forEach(d -> System.out.println("DOC: " + d.getText()));
+        // Debug: show everything retrieved
+        if (docs == null || docs.isEmpty()) {
+            System.out.println("DOC: No matching documents found (before filtering).");
         } else {
-            System.out.println("DOC: No matching documents found.");
+            docs.forEach(d -> System.out.println("DOC (raw): " + d.getText() + " | meta=" + safeMeta(d)));
         }
 
-        // 3️) Build context string from retrieved docs
-        String context = (docs == null || docs.isEmpty())
+        // 2️⃣ Optional restaurantId filtering (based on metadata we stored on ingest)
+        List<Document> filtered = docs;
+        if (restaurantId != null && !restaurantId.trim().isEmpty() && docs != null) {
+            String rid = restaurantId.trim();
+            filtered = docs.stream()
+                .filter(d -> rid.equalsIgnoreCase(String.valueOf(safeMeta(d).get("restaurantId"))))
+                .toList();
+        }
+
+        // Debug: show what's left
+        if (filtered == null || filtered.isEmpty()) {
+            System.out.println("DOC: No matching documents found (after restaurantId filtering). restaurantId=" + restaurantId);
+        } else {
+            filtered.forEach(d -> System.out.println("DOC (kept): " + d.getText()));
+        }
+
+        // 3️⃣ Build CONTEXT for the LLM
+        String context = (filtered == null || filtered.isEmpty())
             ? ""
-            : docs.stream()
+            : filtered.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n\n---\n\n"));
 
-        // 4️) Friendly host system prompt
+        // 4️⃣ Friendly host prompt (tone lives here)
         String system = """
             You are a friendly and welcoming restaurant host.
 
@@ -65,7 +84,6 @@ public class AskController {
             - If the answer is not in the context, say you’re not sure and offer to check with the staff.
             """;
 
-        // 5️)User prompt including retrieved context
         String user = """
             GUEST QUESTION:
             %s
@@ -74,12 +92,17 @@ public class AskController {
             %s
             """.formatted(q, context.isBlank() ? "(no matching restaurant info found)" : context);
 
-        // 6️) Ask OpenAI using retrieved context
+        // 5️⃣ Ask OpenAI with context
         return chatClient
             .prompt()
             .system(system)
             .user(user)
             .call()
             .content();
+    }
+
+    private static Map<String, Object> safeMeta(Document d) {
+        Map<String, Object> meta = d.getMetadata();
+        return meta == null ? Map.of() : meta;
     }
 }
