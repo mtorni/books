@@ -1,4 +1,4 @@
-package com.lunawave.restaurant_ai;
+package com.lunawave.restaurantai;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

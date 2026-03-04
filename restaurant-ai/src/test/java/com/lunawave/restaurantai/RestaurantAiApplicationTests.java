@@ -1,4 +1,4 @@
-package com.lunawave.restaurant_ai;
+package com.lunawave.restaurantai;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
