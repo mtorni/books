@@ -1,16 +1,16 @@
 spring:
   application:
     name: restaurant-ai
+  port: 8080
   ai:
     openai:
-      api-key: 
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
           model: gpt-4o-mini
       embedding:
         options:
           model: text-embedding-3-small
-
     vectorstore:
       chroma:
         initialize-schema: true
@@ -18,3 +18,22 @@ spring:
         client:
           host: http://localhost
           port: 8000
+  datasource:
+    url: jdbc:mysql://localhost:3306/restaurant_ai?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # schema is created by your SQL scripts
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+  # Optional: show SQL while developing
+  # jpa:
+  #   show-sql: true
+  #   properties:
+  #     hibernate:
+  #       format_sql: true
