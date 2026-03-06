@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.lunawave.restaurantai.db.RestaurantDocument;
+import com.lunawave.restaurantai.dto.BulkUpsertDocsRequest;
 import com.lunawave.restaurantai.service.RestaurantAdminService;
 
 @RestController
@@ -25,7 +25,6 @@ public class RestaurantAdminController {
         this.adminService = adminService;
     }
 
-    // GET /api/admin/restaurants/{restaurantId}/docs
     @GetMapping("/docs")
     public Map<String, Object> listDocs(@PathVariable String restaurantId) {
         List<RestaurantDocument> docs = adminService.listDocs(restaurantId);
@@ -46,10 +45,8 @@ public class RestaurantAdminController {
         );
     }
 
- // GET /api/admin/restaurants/{restaurantId}/docs/{docId}
     @GetMapping("/docs/{docId}")
     public Map<String, Object> getDoc(@PathVariable String restaurantId, @PathVariable String docId) {
-
         var opt = adminService.getDoc(restaurantId, docId);
 
         if (opt.isEmpty()) {
@@ -74,46 +71,41 @@ public class RestaurantAdminController {
         return resp;
     }
 
-    // POST /api/admin/restaurants/{restaurantId}/docs  (single-doc upsert for now)
+    // Accepts 1 or many docs
     @PostMapping("/docs")
-    public Map<String, Object> upsertDoc(@PathVariable String restaurantId, @RequestBody UpsertDocRequest req) {
-
-        RestaurantDocument saved = adminService.upsertDoc(
-            restaurantId,
-            req.docId(),
-            req.type(),
-            req.title(),
-            req.text(),
-            req.metadataJson()
-        );
+    public Map<String, Object> upsertDocs(
+        @PathVariable String restaurantId,
+        @RequestBody BulkUpsertDocsRequest req
+    ) {
+        List<String> savedDocIds = adminService.upsertDocs(restaurantId, req.docs());
 
         return Map.of(
             "ok", true,
             "message", "Saved",
             "restaurantId", restaurantId,
-            "docId", saved.getId().getDocId()
+            "count", savedDocIds.size(),
+            "docIds", savedDocIds
         );
     }
 
-    // DELETE /api/admin/restaurants/{restaurantId}/docs/{docId}
     @DeleteMapping("/docs/{docId}")
     public Map<String, Object> deleteDoc(@PathVariable String restaurantId, @PathVariable String docId) {
         adminService.deleteDoc(restaurantId, docId);
-        return Map.of("ok", true, "message", "Deleted", "restaurantId", restaurantId, "docId", docId);
+        return Map.of(
+            "ok", true,
+            "message", "Deleted",
+            "restaurantId", restaurantId,
+            "docId", docId
+        );
     }
 
-    // DELETE /api/admin/restaurants/{restaurantId}/docs
     @DeleteMapping("/docs")
     public Map<String, Object> deleteAll(@PathVariable String restaurantId) {
         adminService.deleteAllDocs(restaurantId);
-        return Map.of("ok", true, "message", "Deleted all docs", "restaurantId", restaurantId);
+        return Map.of(
+            "ok", true,
+            "message", "Deleted all docs",
+            "restaurantId", restaurantId
+        );
     }
-
-    public record UpsertDocRequest(
-        String docId,
-        String type,
-        String title,
-        String text,
-        String metadataJson
-    ) {}
 }
