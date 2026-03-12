@@ -2,7 +2,6 @@ spring:
   application:
     name: restaurant-ai
   port: 8080
-
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -17,18 +16,17 @@ spring:
         initialize-schema: true
         collection-name: restaurant
         client:
-          host: ${CHROMA_HOST:http://localhost}
-          port: ${CHROMA_PORT:8000}
-
+          host: http://localhost
+          port: 8000
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:mysql://localhost:3306/restaurant_ai?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate   # schema is created by your SQL scripts
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect

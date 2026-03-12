@@ -1,7 +1,98 @@
 Questions to ask
-what steaks do you serve
-do you have filet mignon
-how can steaks be cooked
+what steaks do you have under $41
+what seafood do you have
+what lunch items do you have under $20
+what is the dress code
 what are your hours
-what salads do you have
+what steaks do you have
+what seafood do you have under $40
+what lunch items do you have
+what dinner items do you have under $45
+where can I park
+how can steaks be cooked
+what is the price of the ribeye
+
+
+Chroma:
+docker network create restaurant-net
+
+docker run -d --name chroma --network restaurant-net -p 8000:8000 -v /home/ec2-user/apps/chroma-data:/data --restart unless-stopped chromadb/chroma:1.5.5
+
+MySQL:
+mysql -u restaurant_user -p restaurant_ai
+Enter: StrongPassword123!
+
+
+.env
+SPRING_DATASOURCE_URL=jdbc:mysql://ec2-98-81-95-135.compute-1.amazonaws.com:3306/restaurant_ai
+SPRING_DATASOURCE_USERNAME=restaurant_user
+SPRING_DATASOURCE_PASSWORD=StrongPassword123!
+
+scp -i ~/.ssh/aws restaurant-ai.tar ec2-user@YOUR_EC2_HOST:~/apps/restaurant-ai/
+
+
+docker build -t restaurant-ai:latest .
+docker images
+docker save -o restaurant-ai.tar restaurant-ai:latest
+
+
+cd ~/apps/restaurant-ai
+docker load -i restaurant-ai.tar
+docker images
+
+docker run -d --env-file ~/apps/restaurant-ai/.env -p 8080:8080 --name restaurant-ai --restart unless-stopped restaurant-ai:latest
+  
+docker logs -f restaurant-ai
+
+
+
+Build Locally:
+mvn clean package -DskipTests
+docker build --no-cache -t restaurant-ai:latest .
+docker save -o restaurant-ai.tar restaurant-ai:latest
+
+Deploy EC2:
+cd ~/apps/restaurant-ai
+
+docker load -i restaurant-ai.tar
+
+docker rm -f restaurant-ai || true
+docker rm -f restaurant-ai 2>/dev/null || true
+
+docker run -d \
+  --name restaurant-ai \
+  --network restaurant-net \
+  --env-file ~/apps/restaurant-ai/.env \
+  -p 8080:8080 \
+  --restart unless-stopped \
+  restaurant-ai:latest
+
+docker logs -f restaurant-ai
+
+
+DEBUG:
+docker run --rm --entrypoint printenv --env-file ~/apps/restaurant-ai/.env restaurant-ai:latest | grep CHROMA
+docker run --rm --entrypoint sh restaurant-ai:latest -c "unzip -p /app/app.jar BOOT-INF/classes/application.yml"
+unzip -p /tmp/restaurant-ai-app.jar BOOT-INF/classes/application.yaml
+
+Compose: on ec2
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose logs -f restaurant-ai
+
+Build Locally:
+mvn clean package -DskipTests
+docker build --no-cache -t restaurant-ai:latest .
+docker save -o restaurant-ai.tar restaurant-ai:latest
+
+
+Compose Deployment:
+docker load -i restaurant-ai.tar
+docker compose down
+docker compose up -d
+docker compose logs -f restaurant-ai
+
+
+
 
