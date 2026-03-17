@@ -13,14 +13,12 @@
     const baseUrl = new URL(script.src).origin;
     const API_URL = baseUrl + "/api/restaurant/ask";
 
-    // ---------------------------
-    // Launcher (button + dismiss)
-    // ---------------------------
+    const isMobile = window.innerWidth <= 600;
 
     const launcher = document.createElement("div");
     launcher.style.position = "fixed";
-    launcher.style.bottom = "20px";
-    launcher.style.right = "20px";
+    launcher.style.bottom = isMobile ? "14px" : "20px";
+    launcher.style.right = isMobile ? "14px" : "20px";
     launcher.style.display = "flex";
     launcher.style.alignItems = "center";
     launcher.style.gap = "6px";
@@ -31,24 +29,25 @@
     closeLauncher.style.border = "none";
     closeLauncher.style.background = "#ddd";
     closeLauncher.style.color = "#333";
-    closeLauncher.style.width = "22px";
-    closeLauncher.style.height = "22px";
+    closeLauncher.style.width = isMobile ? "28px" : "22px";
+    closeLauncher.style.height = isMobile ? "28px" : "22px";
     closeLauncher.style.borderRadius = "50%";
     closeLauncher.style.cursor = "pointer";
-    closeLauncher.style.fontSize = "12px";
-    closeLauncher.style.lineHeight = "22px";
+    closeLauncher.style.fontSize = isMobile ? "14px" : "12px";
+    closeLauncher.style.lineHeight = isMobile ? "28px" : "22px";
     closeLauncher.style.padding = "0";
 
     const button = document.createElement("button");
     button.textContent = "💬 Ask Us";
-    button.style.padding = "12px 16px";
-    button.style.borderRadius = "20px";
+    button.style.padding = isMobile ? "14px 18px" : "12px 16px";
+    button.style.borderRadius = "24px";
     button.style.border = "none";
     button.style.background = color;
     button.style.color = "white";
     button.style.cursor = "pointer";
     button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
-    button.style.fontSize = "14px";
+    button.style.fontSize = isMobile ? "16px" : "14px";
+    button.style.fontWeight = "600";
 
     launcher.appendChild(closeLauncher);
     launcher.appendChild(button);
@@ -58,16 +57,8 @@
         launcher.remove();
     };
 
-    // ---------------------------
-    // Chat Window
-    // ---------------------------
-
     const chat = document.createElement("div");
     chat.style.position = "fixed";
-    chat.style.bottom = "70px";
-    chat.style.right = "20px";
-    chat.style.width = "340px";
-    chat.style.height = "460px";
     chat.style.background = "white";
     chat.style.border = "1px solid #ccc";
     chat.style.borderRadius = "12px";
@@ -76,6 +67,22 @@
     chat.style.zIndex = "9999";
     chat.style.boxShadow = "0 6px 24px rgba(0,0,0,0.2)";
     chat.style.overflow = "hidden";
+    chat.style.boxSizing = "border-box";
+
+    if (isMobile) {
+        chat.style.top = "10px";
+        chat.style.bottom = "10px";
+        chat.style.right = "10px";
+        chat.style.left = "10px";
+        chat.style.width = "auto";
+        chat.style.height = "auto";
+        chat.style.maxHeight = "calc(100vh - 20px)";
+    } else {
+        chat.style.bottom = "70px";
+        chat.style.right = "20px";
+        chat.style.width = "340px";
+        chat.style.height = "460px";
+    }
 
     chat.innerHTML = `
         <div style="padding:12px;background:${color};color:white;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
@@ -87,9 +94,9 @@
 
         <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:8px;background:white;">
             <input id="chatInput" placeholder="Ask a question..."
-                   style="flex:1;padding:8px;border:1px solid #ccc;border-radius:8px;outline:none;" />
+                   style="flex:1;padding:10px;border:1px solid #ccc;border-radius:8px;outline:none;font-size:16px;" />
             <button id="chatSend"
-                    style="padding:8px 12px;border:none;border-radius:8px;background:${color};color:white;cursor:pointer;">
+                    style="padding:10px 14px;border:none;border-radius:8px;background:${color};color:white;cursor:pointer;font-weight:600;">
                 Send
             </button>
         </div>
@@ -102,22 +109,13 @@
     const sendBtn = chat.querySelector("#chatSend");
     const closeBtn = chat.querySelector("#chatClose");
 
-    // ---------------------------
-    // Utility
-    // ---------------------------
-
     function escapeHtml(text) {
         const div = document.createElement("div");
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // ---------------------------
-    // Chat Message Bubbles
-    // ---------------------------
-
     function addMessage(sender, text) {
-
         const row = document.createElement("div");
         row.style.display = "flex";
         row.style.marginBottom = "10px";
@@ -139,21 +137,14 @@
         }
 
         bubble.innerHTML = escapeHtml(text);
-
         row.appendChild(bubble);
         messages.appendChild(row);
-
         messages.scrollTop = messages.scrollHeight;
 
         return bubble;
     }
 
-    // ---------------------------
-    // Typing Indicator
-    // ---------------------------
-
     function addTypingIndicator() {
-
         const row = document.createElement("div");
         row.style.display = "flex";
         row.style.marginBottom = "10px";
@@ -172,7 +163,6 @@
 
         row.appendChild(bubble);
         messages.appendChild(row);
-
         messages.scrollTop = messages.scrollHeight;
 
         return row;
@@ -188,14 +178,9 @@
     `;
     document.head.appendChild(style);
 
-    // ---------------------------
-    // Chat Logic
-    // ---------------------------
-
     let welcomeShown = false;
 
     function openChat() {
-
         chat.style.display = "flex";
         input.focus();
 
@@ -206,7 +191,6 @@
     }
 
     async function sendQuestion() {
-
         const q = input.value.trim();
         if (!q) return;
 
@@ -216,7 +200,6 @@
         const typingIndicator = addTypingIndicator();
 
         try {
-
             const response = await fetch(API_URL, {
                 method: "POST",
                 headers: {
@@ -243,18 +226,12 @@
             );
 
         } catch (err) {
-
             typingIndicator.remove();
             addMessage("Assistant", "Sorry, something went wrong.");
-
         }
 
         messages.scrollTop = messages.scrollHeight;
     }
-
-    // ---------------------------
-    // Events
-    // ---------------------------
 
     button.onclick = openChat;
 
