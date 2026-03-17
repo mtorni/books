@@ -1,53 +1,97 @@
 (function () {
 
     const script = document.currentScript;
+
     const restaurantId = script?.dataset?.restaurantId || "";
+    const title = script?.dataset?.title || "Restaurant";
+    const color = script?.dataset?.color || "#333";
 
-    const API_URL = "/api/restaurant/ask";
+    const welcome =
+        script?.dataset?.welcome ||
+        `Welcome to ${title}! How can I help today?`;
 
-    // floating button
+    const baseUrl = new URL(script.src).origin;
+    const API_URL = baseUrl + "/api/restaurant/ask";
+
+    // ---------------------------
+    // Launcher (button + dismiss)
+    // ---------------------------
+
+    const launcher = document.createElement("div");
+    launcher.style.position = "fixed";
+    launcher.style.bottom = "20px";
+    launcher.style.right = "20px";
+    launcher.style.display = "flex";
+    launcher.style.alignItems = "center";
+    launcher.style.gap = "6px";
+    launcher.style.zIndex = "9999";
+
+    const closeLauncher = document.createElement("button");
+    closeLauncher.textContent = "✕";
+    closeLauncher.style.border = "none";
+    closeLauncher.style.background = "#ddd";
+    closeLauncher.style.color = "#333";
+    closeLauncher.style.width = "22px";
+    closeLauncher.style.height = "22px";
+    closeLauncher.style.borderRadius = "50%";
+    closeLauncher.style.cursor = "pointer";
+    closeLauncher.style.fontSize = "12px";
+    closeLauncher.style.lineHeight = "22px";
+    closeLauncher.style.padding = "0";
+
     const button = document.createElement("button");
-    button.innerHTML = "&#128172; Ask Us";
-    button.style.position = "fixed";
-    button.style.bottom = "20px";
-    button.style.right = "20px";
+    button.textContent = "💬 Ask Us";
     button.style.padding = "12px 16px";
     button.style.borderRadius = "20px";
     button.style.border = "none";
-    button.style.background = "#333";
+    button.style.background = color;
     button.style.color = "white";
     button.style.cursor = "pointer";
-    button.style.zIndex = "9999";
+    button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+    button.style.fontSize = "14px";
 
-    document.body.appendChild(button);
+    launcher.appendChild(closeLauncher);
+    launcher.appendChild(button);
+    document.body.appendChild(launcher);
 
-    // chat window
+    closeLauncher.onclick = () => {
+        launcher.remove();
+    };
+
+    // ---------------------------
+    // Chat Window
+    // ---------------------------
+
     const chat = document.createElement("div");
     chat.style.position = "fixed";
     chat.style.bottom = "70px";
     chat.style.right = "20px";
-    chat.style.width = "320px";
-    chat.style.height = "420px";
+    chat.style.width = "340px";
+    chat.style.height = "460px";
     chat.style.background = "white";
     chat.style.border = "1px solid #ccc";
-    chat.style.borderRadius = "10px";
+    chat.style.borderRadius = "12px";
     chat.style.display = "none";
     chat.style.flexDirection = "column";
     chat.style.zIndex = "9999";
-    chat.style.boxShadow = "0 4px 20px rgba(0,0,0,0.2)";
+    chat.style.boxShadow = "0 6px 24px rgba(0,0,0,0.2)";
+    chat.style.overflow = "hidden";
 
     chat.innerHTML = `
-        <div style="padding:10px;background:#333;color:white;border-radius:10px 10px 0 0">
-            Restaurant Assistant
-            <span id="chatClose" style="float:right;cursor:pointer">✕</span>
+        <div style="padding:12px;background:${color};color:white;font-weight:bold;display:flex;justify-content:space-between;align-items:center;">
+            <span>${title} Assistant</span>
+            <span id="chatClose" style="cursor:pointer;font-size:18px;">✕</span>
         </div>
 
-        <div id="chatMessages" style="flex:1;overflow:auto;padding:10px;font-size:14px"></div>
+        <div id="chatMessages" style="flex:1;overflow:auto;padding:12px;background:#f8f8f8;font-size:14px;"></div>
 
-        <div style="padding:10px;border-top:1px solid #eee">
+        <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:8px;background:white;">
             <input id="chatInput" placeholder="Ask a question..."
-                   style="width:70%;padding:6px"/>
-            <button id="chatSend">Send</button>
+                   style="flex:1;padding:8px;border:1px solid #ccc;border-radius:8px;outline:none;" />
+            <button id="chatSend"
+                    style="padding:8px 12px;border:none;border-radius:8px;background:${color};color:white;cursor:pointer;">
+                Send
+            </button>
         </div>
     `;
 
@@ -58,14 +102,107 @@
     const sendBtn = chat.querySelector("#chatSend");
     const closeBtn = chat.querySelector("#chatClose");
 
-    function addMessage(sender, text) {
-        const div = document.createElement("div");
-        div.style.marginBottom = "8px";
+    // ---------------------------
+    // Utility
+    // ---------------------------
 
-        div.innerHTML = `<b>${sender}:</b> ${text}`;
-        messages.appendChild(div);
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ---------------------------
+    // Chat Message Bubbles
+    // ---------------------------
+
+    function addMessage(sender, text) {
+
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.marginBottom = "10px";
+        row.style.justifyContent = sender === "You" ? "flex-end" : "flex-start";
+
+        const bubble = document.createElement("div");
+        bubble.style.maxWidth = "80%";
+        bubble.style.padding = "10px 12px";
+        bubble.style.borderRadius = "14px";
+        bubble.style.lineHeight = "1.4";
+        bubble.style.wordWrap = "break-word";
+
+        if (sender === "You") {
+            bubble.style.background = color;
+            bubble.style.color = "white";
+        } else {
+            bubble.style.background = "#e9e9e9";
+            bubble.style.color = "#111";
+        }
+
+        bubble.innerHTML = escapeHtml(text);
+
+        row.appendChild(bubble);
+        messages.appendChild(row);
 
         messages.scrollTop = messages.scrollHeight;
+
+        return bubble;
+    }
+
+    // ---------------------------
+    // Typing Indicator
+    // ---------------------------
+
+    function addTypingIndicator() {
+
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.marginBottom = "10px";
+
+        const bubble = document.createElement("div");
+        bubble.style.background = "#e9e9e9";
+        bubble.style.borderRadius = "14px";
+        bubble.style.padding = "10px 14px";
+        bubble.style.fontSize = "18px";
+
+        bubble.innerHTML = `
+            <span style="animation: blink 1s infinite;">●</span>
+            <span style="animation: blink 1s infinite 0.2s;">●</span>
+            <span style="animation: blink 1s infinite 0.4s;">●</span>
+        `;
+
+        row.appendChild(bubble);
+        messages.appendChild(row);
+
+        messages.scrollTop = messages.scrollHeight;
+
+        return row;
+    }
+
+    const style = document.createElement("style");
+    style.innerHTML = `
+        @keyframes blink {
+            0% {opacity:0.2;}
+            50% {opacity:1;}
+            100% {opacity:0.2;}
+        }
+    `;
+    document.head.appendChild(style);
+
+    // ---------------------------
+    // Chat Logic
+    // ---------------------------
+
+    let welcomeShown = false;
+
+    function openChat() {
+
+        chat.style.display = "flex";
+        input.focus();
+
+        if (!welcomeShown) {
+            addMessage("Assistant", welcome);
+            welcomeShown = true;
+        }
     }
 
     async function sendQuestion() {
@@ -76,7 +213,7 @@
         addMessage("You", q);
         input.value = "";
 
-        addMessage("Assistant", "Thinking...");
+        const typingIndicator = addTypingIndicator();
 
         try {
 
@@ -91,23 +228,35 @@
                 })
             });
 
+            typingIndicator.remove();
+
+            if (!response.ok) {
+                addMessage("Assistant", "Sorry, something went wrong.");
+                return;
+            }
+
             const data = await response.json();
 
-            messages.lastChild.innerHTML =
-                `<b>Assistant:</b> ${data.answer}`;
+            addMessage(
+                "Assistant",
+                data.answer || "Sorry, no answer returned."
+            );
 
         } catch (err) {
 
-            messages.lastChild.innerHTML =
-                `<b>Assistant:</b> Sorry, something went wrong.`;
+            typingIndicator.remove();
+            addMessage("Assistant", "Sorry, something went wrong.");
 
         }
+
+        messages.scrollTop = messages.scrollHeight;
     }
 
-    button.onclick = () => {
-        chat.style.display = "flex";
-        input.focus();
-    };
+    // ---------------------------
+    // Events
+    // ---------------------------
+
+    button.onclick = openChat;
 
     closeBtn.onclick = () => {
         chat.style.display = "none";
