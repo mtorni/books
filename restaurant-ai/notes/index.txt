@@ -66,8 +66,13 @@ docker run -d \
   -p 8080:8080 \
   --restart unless-stopped \
   restaurant-ai:latest
+  
+docker run -d --name restaurant-ai --network restaurant-net --env-file ~/apps/restaurant-ai/.env -p 8080:8080 --restart unless-stopped restaurant-ai:latest
 
 docker logs -f restaurant-ai
+
+
+
 
 
 DEBUG:

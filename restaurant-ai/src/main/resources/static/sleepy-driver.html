@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Drowsy Driver Demo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+
+    p {
+      max-width: 700px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .stage {
+      position: relative;
+      width: min(92vw, 640px);
+      aspect-ratio: 4 / 3;
+      margin-top: 16px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid #333;
+    }
+
+    video,
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .panel {
+      width: min(92vw, 640px);
+      margin-top: 16px;
+      background: #1b1b1b;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 14px;
+      box-sizing: border-box;
+    }
+
+    .status {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .ok { color: #7CFC8A; }
+    .warn { color: #FFD166; }
+    .alert { color: #FF6B6B; }
+
+    .row {
+      margin: 8px 0;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Simple Drowsy Driver Demo</h1>
+  <p>
+    This is a very basic browser prototype using JavaScript + MediaPipe Face Mesh.
+    It watches for a rough “head drop” pattern and shows an alert. It is only a demo,
+    not something safe or reliable enough for real driving.
+  </p>
+
+  <div class="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="panel">
+    <div id="status" class="status warn">Status: Starting camera...</div>
+    <div class="row">Head drop score: <span id="score">0</span></div>
+    <div class="row">Baseline ratio: <span id="baseline">calibrating...</span></div>
+    <div class="row">Current ratio: <span id="currentRatio">--</span></div>
+    <button id="resetBtn">Reset Calibration</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const scoreEl = document.getElementById('score');
+    const baselineEl = document.getElementById('baseline');
+    const currentRatioEl = document.getElementById('currentRatio');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let baselineRatio = null;
+    let calibrationSamples = [];
+    let headDropFrames = 0;
+    let alarmCooldown = 0;
+
+    function setStatus(text, cls) {
+      statusEl.textContent = text;
+      statusEl.className = `status ${cls}`;
+    }
+
+    function distance(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function beep() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.05;
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.25);
+    }
+
+    function triggerAlert() {
+      setStatus('Status: Possible head nod detected', 'alert');
+      beep();
+      alarmCooldown = 45;
+    }
+
+    resetBtn.addEventListener('click', () => {
+      baselineRatio = null;
+      calibrationSamples = [];
+      headDropFrames = 0;
+      setStatus('Status: Recalibrating...', 'warn');
+      baselineEl.textContent = 'calibrating...';
+      scoreEl.textContent = '0';
+    });
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    faceMesh.onResults((results) => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
+        setStatus('Status: No face detected', 'warn');
+        return;
+      }
+
+      const landmarks = results.multiFaceLandmarks[0];
+      drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, {
+        color: '#00FF88',
+        lineWidth: 0.5
+      });
+
+      // Approximate points.
+      const noseTip = landmarks[1];
+      const chin = landmarks[152];
+      const leftEyeOuter = landmarks[33];
+      const rightEyeOuter = landmarks[263];
+
+      // Ratio normalizes for face size.
+      const noseToChin = distance(noseTip, chin);
+      const eyeWidth = distance(leftEyeOuter, rightEyeOuter);
+      const ratio = noseToChin / eyeWidth;
+
+      currentRatioEl.textContent = ratio.toFixed(3);
+
+      if (baselineRatio === null) {
+        calibrationSamples.push(ratio);
+        if (calibrationSamples.length >= 30) {
+          baselineRatio = calibrationSamples.reduce((a, b) => a + b, 0) / calibrationSamples.length;
+          baselineEl.textContent = baselineRatio.toFixed(3);
+          setStatus('Status: Monitoring', 'ok');
+        } else {
+          baselineEl.textContent = `calibrating (${calibrationSamples.length}/30)`;
+          setStatus('Status: Hold your head normally for calibration', 'warn');
+        }
+        return;
+      }
+
+      const change = ratio - baselineRatio;
+      scoreEl.textContent = change.toFixed(3);
+
+      // Very rough demo logic:
+      // if ratio jumps enough for several frames, treat as head drop.
+      if (change > 0.12) {
+        headDropFrames++;
+      } else {
+        headDropFrames = Math.max(0, headDropFrames - 1);
+      }
+
+      if (alarmCooldown > 0) {
+        alarmCooldown--;
+      }
+
+      if (headDropFrames > 8 && alarmCooldown === 0) {
+        triggerAlert();
+      } else if (change > 0.07) {
+        setStatus('Status: Watching possible downward motion', 'warn');
+      } else {
+        setStatus('Status: Monitoring', 'ok');
+      }
+    });
+
+    async function init() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+
+        video.srcObject = stream;
+
+        video.onloadedmetadata = async () => {
+          await video.play();
+
+          const camera = new Camera(video, {
+            onFrame: async () => {
+              await faceMesh.send({ image: video });
+            },
+            width: 640,
+            height: 480
+          });
+
+          camera.start();
+        };
+      } catch (err) {
+        console.error(err);
+        setStatus('Status: Camera access failed', 'alert');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

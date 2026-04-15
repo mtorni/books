@@ -27,7 +27,8 @@ public class SecurityConfig {
                     "/widget.js",
                     "/widget-test.html",
                     "/favicon.ico",
-                    "/error"
+                    "/error",
+                    "/sleepy-driver.html"                    
                 ).permitAll()
                 .anyRequest().authenticated()
             )
