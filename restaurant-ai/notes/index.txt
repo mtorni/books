@@ -12,6 +12,7 @@ where can I park
 how can steaks be cooked
 what is the price of the ribeye
 
+ssh lunawave-ec2
 
 Chroma:
 docker network create restaurant-net
@@ -97,7 +98,5 @@ docker load -i restaurant-ai.tar
 docker compose down
 docker compose up -d
 docker compose logs -f restaurant-ai
-
-
 
 

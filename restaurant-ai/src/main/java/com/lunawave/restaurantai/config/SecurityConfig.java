@@ -24,6 +24,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/restaurant/ask",
+                    "/api/voice/**",
                     "/widget.js",
                     "/widget-test.html",
                     "/favicon.ico",

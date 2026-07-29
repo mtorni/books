@@ -49,6 +49,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Twilio Media Streams / OpenAI Realtime bridge -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- Spring AI: OpenAI chat + embeddings -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
